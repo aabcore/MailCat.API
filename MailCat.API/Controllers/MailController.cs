@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Net.Mime;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -15,6 +16,9 @@ using ValidationContext = System.ComponentModel.DataAnnotations.ValidationContex
 
 namespace MailCat.API.Controllers
 {
+
+    [Consumes(MediaTypeNames.Application.Json)]
+    [Produces(MediaTypeNames.Application.Json)]
     [Route("api/[controller]")]
     [ApiController]
     public class MailController : ControllerBase
@@ -110,39 +114,35 @@ namespace MailCat.API.Controllers
         private static Regex EmailRegex = new Regex(@"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         protected override ValidationResult IsValid(object value, ValidationContext validationContext)
         {
-            if (value is null)
+            switch (value)
             {
-                return ValidationResult.Success;
-            }
-
-            if (value is string strVal)
-            {
-                return EmailRegex.IsMatch(strVal) ? ValidationResult.Success : new ValidationResult($"{strVal} does not look like an email address.");
-            }
-
-            
-            if (value is IEnumerable<string> valArr)
-            {
-                var collectedErrors = new List<string>();
-                foreach (var val in valArr)
+                case null:
+                    return ValidationResult.Success;
+                case string strVal:
+                    return EmailRegex.IsMatch(strVal) ? ValidationResult.Success : new ValidationResult($"{strVal} does not look like an email address.");
+                case IEnumerable<string> valArr:
                 {
-                    if (!EmailRegex.IsMatch(val))
+                    var collectedErrors = new List<string>();
+                    foreach (var val in valArr)
                     {
-                        collectedErrors.Add($"{val}");
+                        if (!EmailRegex.IsMatch(val))
+                        {
+                            collectedErrors.Add($"{val}");
+                        }
+                    }
+
+                    if (collectedErrors.Any())
+                    {
+                        return new ValidationResult($"[{string.Join($", ", collectedErrors)}] don't look like email address(es)");
+                    }
+                    else
+                    {
+                        return ValidationResult.Success;
                     }
                 }
-
-                if (collectedErrors.Any())
-                {
-                    return new ValidationResult($"[{string.Join($", ", collectedErrors)}] don't look like email address(es)");
-                }
-                else
-                {
-                    return ValidationResult.Success;
-                }
+                default:
+                    return new ValidationResult("Input doesn't match a string or a string[].");
             }
-
-            return new ValidationResult("Input doesn't match a string or a string[].");
         }
     }
 
