@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using MailCat.API.Models.ApiDtos;
 using MailCat.API.Models.Entities;
+using MailCat.API.Models.Filters;
 using MailCat.API.Results;
 using MailCat.API.Services;
 using Microsoft.AspNetCore.Http;
@@ -16,7 +17,6 @@ using ValidationContext = System.ComponentModel.DataAnnotations.ValidationContex
 
 namespace MailCat.API.Controllers
 {
-
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [Route("api/[controller]")]
@@ -37,7 +37,8 @@ namespace MailCat.API.Controllers
         [ProducesResponseType(typeof(IEnumerable<BadRequestOutDto>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         // Always returns in desc datetime order
-        public async Task<IActionResult> GetMail(DateTimeOffset? before = null, DateTimeOffset? after = null, string toEmail = null, string fromEmail = null, int max = 100,
+        public async Task<IActionResult> GetMail(DateTimeOffset? before = null, DateTimeOffset? after = null, string toEmail = null,
+            string fromEmail = null, int limit = 100,
             int skip = 0)
         {
             var getMailFilter = new GetMailFilter
@@ -46,7 +47,7 @@ namespace MailCat.API.Controllers
                 After = after,
                 ToEmail = toEmail,
                 FromEmail = fromEmail,
-                Max = Math.Min(max, 1000),
+                Limit = Math.Min(limit, 1000),
                 Skip = Math.Max(0, skip)
             };
 
@@ -54,7 +55,7 @@ namespace MailCat.API.Controllers
             switch (getMailResult)
             {
                 case BadRequestTypedResult<IEnumerable<MailEntity>> badRequestTypedResult:
-                    return BadRequest(badRequestTypedResult.Problem);
+                    return BadRequest(badRequestTypedResult);
                 case FailedTypedResult<IEnumerable<MailEntity>> failedTypedResult:
                     return StatusCode(StatusCodes.Status500InternalServerError, failedTypedResult.Error);
                 case NotFoundTypedResult<IEnumerable<MailEntity>> _:
@@ -76,12 +77,12 @@ namespace MailCat.API.Controllers
             switch (newMailResult)
             {
                 case BadRequestTypedResult<bool> badRequestTypedResult:
-                    return BadRequest(badRequestTypedResult.Problem);
+                    return BadRequest(badRequestTypedResult);
                 case FailedTypedResult<bool> failedTypedResult:
                     return StatusCode(StatusCodes.Status500InternalServerError, failedTypedResult.Error);
                 case NotFoundTypedResult<bool> _:
                     return NotFound();
-                case SuccessfulTypedResult<bool> successfulTypedResult:
+                case SuccessfulTypedResult<bool> _:
                     return NoContent();
                 default:
                     throw new ArgumentOutOfRangeException(nameof(newMailResult));
@@ -105,6 +106,7 @@ namespace MailCat.API.Controllers
 
         [EmailAddressRex]
         public IEnumerable<string> BccRecipients { get; set; }
+
         public string Subject { get; set; }
         public string Body { get; set; }
     }
@@ -112,6 +114,7 @@ namespace MailCat.API.Controllers
     public class EmailAddressRexAttribute : ValidationAttribute
     {
         private static Regex EmailRegex = new Regex(@"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         protected override ValidationResult IsValid(object value, ValidationContext validationContext)
         {
             switch (value)
@@ -119,40 +122,20 @@ namespace MailCat.API.Controllers
                 case null:
                     return ValidationResult.Success;
                 case string strVal:
-                    return EmailRegex.IsMatch(strVal) ? ValidationResult.Success : new ValidationResult($"{strVal} does not look like an email address.");
-                case IEnumerable<string> valArr:
+                    return EmailRegex.IsMatch(strVal)
+                        ? ValidationResult.Success
+                        : new ValidationResult($"{strVal} does not look like an email address.");
+                case IEnumerable<string> arrVal:
                 {
-                    var collectedErrors = new List<string>();
-                    foreach (var val in valArr)
-                    {
-                        if (!EmailRegex.IsMatch(val))
-                        {
-                            collectedErrors.Add($"{val}");
-                        }
-                    }
+                    var collectedErrors = arrVal.Where(strVal => !EmailRegex.IsMatch(strVal)).Select(strVal => $"{strVal}").ToList();
 
-                    if (collectedErrors.Any())
-                    {
-                        return new ValidationResult($"[{string.Join($", ", collectedErrors)}] don't look like email address(es)");
-                    }
-                    else
-                    {
-                        return ValidationResult.Success;
-                    }
+                    return collectedErrors.Any()
+                        ? new ValidationResult($"[{string.Join($", ", collectedErrors)}] don't look like email address(es)")
+                        : ValidationResult.Success;
                 }
                 default:
                     return new ValidationResult("Input doesn't match a string or a string[].");
             }
         }
-    }
-
-    public class GetMailFilter
-    {
-        public DateTimeOffset? Before { get; set; }
-        public DateTimeOffset? After { get; set; }
-        public string ToEmail { get; set; }
-        public string FromEmail { get; set; }
-        public int Max { get; set; }
-        public int Skip { get; set; }
     }
 }

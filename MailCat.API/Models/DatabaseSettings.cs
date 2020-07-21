@@ -12,5 +12,7 @@ namespace MailCat.API.Models
         public string DatabaseUserName { get; set; }
         public string DatabasePassword { get; set; }
         public string MailCollectionName { get; set; }
+        public string TemplateCollectionName { get; set; }
+        public string TemplateRevisionCollectionName { get; set; }
     }
 }

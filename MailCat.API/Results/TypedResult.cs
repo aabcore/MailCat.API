@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MailCat.API.Results
 {
@@ -32,17 +33,14 @@ namespace MailCat.API.Results
 
     public class BadRequestTypedResult<T> : TypedResult<T>
     {
-        public BadRequestTypedResult(string message)
+        public BadRequestTypedResult(string key, string errorMessage)
         {
-            Problem = new BadRequestOutDto(message);
+            Key = key;
+            ErrorMessage = errorMessage;
         }
 
-        public BadRequestTypedResult(BadRequestOutDto badRequestOutDto)
-        {
-            Problem = badRequestOutDto;
-        }
-
-        public BadRequestOutDto Problem { get; set; }
+        public string Key{ get; set; }
+        public string ErrorMessage { get; set; }
     }
     public class BadRequestOutDto
     {

@@ -7,6 +7,7 @@ using AutoMapper;
 using MailCat.API.Controllers;
 using MailCat.API.Models;
 using MailCat.API.Models.Entities;
+using MailCat.API.Models.Filters;
 using MailCat.API.Results;
 using MongoDB.Driver;
 
@@ -57,7 +58,7 @@ namespace MailCat.API.Services
                 }
 
                 var opts = new FindOptions<MailEntity>()
-                    {Limit = getMailFilter.Max, Skip = getMailFilter.Skip, Sort = Builders<MailEntity>.Sort.Descending(me => me.Date)};
+                    {Limit = getMailFilter.Limit, Skip = getMailFilter.Skip, Sort = Builders<MailEntity>.Sort.Descending(me => me.Date)};
 
                 if (filters.Any())
                 {

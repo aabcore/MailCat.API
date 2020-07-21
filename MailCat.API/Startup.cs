@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using MailCat.API.Controllers;
 using MailCat.API.Models;
 using MailCat.API.Services;
 using Microsoft.AspNetCore.Builder;
@@ -34,9 +35,13 @@ namespace MailCat.API
 
             services.AddSingleton<DatabaseSettings>(sp => sp.GetRequiredService<IOptions<DatabaseSettings>>().Value);
             services.AddSingleton<MailService>();
+            services.AddSingleton<TemplateService>();
 
             services.AddControllers()
-                .AddNewtonsoftJson(o => o.SerializerSettings.Converters.Add(new StringEnumConverter()));
+                .AddNewtonsoftJson(o =>
+                {
+                    o.SerializerSettings.Converters.Add(new StringEnumConverter());
+                });
 
             services.AddSwaggerGen();
             services.AddSwaggerGenNewtonsoftSupport(); // Must be placed after .AddSwaggerGen();

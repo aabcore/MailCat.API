@@ -17,6 +17,16 @@ namespace MailCat.API
                 .ForMember(dest => dest.CcRecipients, opt => opt.AllowNull())
                 .ForMember(dest => dest.BccRecipients, opt => opt.AllowNull());
             CreateMap<MailEntity, MailOutDto>();
+            CreateMap<TemplateInDto, TemplateEntity>();
+            CreateMap<TemplateRevisionInDto, TemplateRevisionEntity>()
+                .ForMember(dest => dest.DefaultToRecipients, opt => opt.AllowNull())
+                .ForMember(dest => dest.DefaultCcRecipients, opt => opt.AllowNull())
+                .ForMember(dest => dest.DefaultBccRecipients, opt => opt.AllowNull());
+            CreateMap<TemplateEntity, TemplateOutDto>();
+            CreateMap<TemplateRevisionEntity, TemplateRevisionOutDto>()
+                .ForMember(dest => dest.DefaultToRecipients, opt => opt.AllowNull())
+                .ForMember(dest => dest.DefaultCcRecipients, opt => opt.AllowNull())
+                .ForMember(dest => dest.DefaultBccRecipients, opt => opt.AllowNull());
         }
     }
 }
