@@ -33,9 +33,10 @@ namespace MailCat.API.Controllers
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<MailOutDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(IEnumerable<BadRequestOutDto>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(FilteredDtoOut<GetMailFilter, MailOutDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         // Always returns in desc datetime order
         public async Task<IActionResult> GetMail(DateTimeOffset? before = null, DateTimeOffset? after = null, string toEmail = null,
             string fromEmail = null, int limit = 100,
@@ -55,13 +56,15 @@ namespace MailCat.API.Controllers
             switch (getMailResult)
             {
                 case BadRequestTypedResult<IEnumerable<MailEntity>> badRequestTypedResult:
-                    return BadRequest(badRequestTypedResult);
+                    ModelState.AddModelError(badRequestTypedResult.Key, badRequestTypedResult.ErrorMessage);
+                    return ValidationProblem(ModelState);
                 case FailedTypedResult<IEnumerable<MailEntity>> failedTypedResult:
-                    return StatusCode(StatusCodes.Status500InternalServerError, failedTypedResult.Error);
+                    return Problem(failedTypedResult.Error.ToString(), statusCode: StatusCodes.Status500InternalServerError,
+                        title: failedTypedResult.Error.Message);
                 case NotFoundTypedResult<IEnumerable<MailEntity>> _:
                     return NotFound();
                 case SuccessfulTypedResult<IEnumerable<MailEntity>> successfulTypedResult:
-                    return Ok(Mapper.Map<IEnumerable<MailEntity>, IEnumerable<MailOutDto>>(successfulTypedResult.Value));
+                    return Ok(new FilteredDtoOut<GetMailFilter, MailOutDto>(getMailFilter, Mapper.Map<IEnumerable<MailEntity>, IEnumerable<MailOutDto>>(successfulTypedResult.Value)));
                 default:
                     throw new ArgumentOutOfRangeException(nameof(getMailResult));
             }
@@ -69,19 +72,19 @@ namespace MailCat.API.Controllers
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(IEnumerable<BadRequestOutDto>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SendEmail(NewEmailInDto newMailIn)
         {
             var newMailResult = await MailService.CreateMail(newMailIn);
             switch (newMailResult)
             {
                 case BadRequestTypedResult<bool> badRequestTypedResult:
-                    return BadRequest(badRequestTypedResult);
+                    ModelState.AddModelError(badRequestTypedResult.Key, badRequestTypedResult.ErrorMessage);
+                    return ValidationProblem(ModelState);
                 case FailedTypedResult<bool> failedTypedResult:
-                    return StatusCode(StatusCodes.Status500InternalServerError, failedTypedResult.Error);
-                case NotFoundTypedResult<bool> _:
-                    return NotFound();
+                    return Problem(failedTypedResult.Error.ToString(), statusCode: StatusCodes.Status500InternalServerError,
+                        title: failedTypedResult.Error.Message);
                 case SuccessfulTypedResult<bool> _:
                     return NoContent();
                 default:
