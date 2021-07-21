@@ -9,6 +9,7 @@ using MailCat.API.Models;
 using MailCat.API.Models.Entities;
 using MailCat.API.Models.Filters;
 using MailCat.API.Results;
+using Microsoft.Extensions.Configuration;
 using Microsoft.VisualBasic;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -21,7 +22,7 @@ namespace MailCat.API.Services
         private readonly IMongoCollection<TemplateEntity> _templateCollection;
         private readonly IMongoCollection<TemplateRevisionEntity> _templateRevisionCollection;
 
-        public TemplateService(DatabaseSettings dbSettings, IMapper mapper)
+        public TemplateService(DatabaseSettings dbSettings, IMapper mapper, IConfiguration config) : base(config)
         {
             Mapper = mapper;
             var database = BuildDatabaseClient(dbSettings);

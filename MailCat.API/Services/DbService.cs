@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MailCat.API.Models;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
@@ -12,20 +13,38 @@ namespace MailCat.API.Services
 {
     public class DbService
     {
+        private IConfiguration Config { get; }
+
+        public DbService(IConfiguration config)
+        {
+            Config = config;
+        }
+
         public IMongoDatabase BuildDatabaseClient(DatabaseSettings dbSettings)
         {
             Console.WriteLine($"Configured with these Settings: {Environment.NewLine}" +
                               $"{JToken.FromObject(dbSettings).ToString()}");
-            var credential = MongoCredential.CreateCredential("admin",
-                dbSettings.DatabaseUserName,
-                dbSettings.DatabasePassword);
-            var clientSettings = new MongoClientSettings()
+            MongoClient client;
+            if (string.IsNullOrWhiteSpace(Config["MONGO_URL"]))
             {
-                Credential = credential,
-                Server = MongoServerAddress.Parse(dbSettings.ConnectionString),
-                AllowInsecureTls = true
-            };
-            var client = new MongoClient(clientSettings);
+                Console.WriteLine($"Configured with these Settings: {Environment.NewLine}" +
+                                  $"{JToken.FromObject(dbSettings).ToString()}");
+                var credential = MongoCredential.CreateCredential("admin",
+                    dbSettings.DatabaseUserName,
+                    dbSettings.DatabasePassword);
+                var clientSettings = new MongoClientSettings()
+                {
+                    Credential = credential,
+                    Server = MongoServerAddress.Parse(dbSettings.ConnectionString),
+                    AllowInsecureTls = true
+                };
+                client = new MongoClient(clientSettings);
+
+            }
+            else
+            {
+                client = new MongoClient(Config["MONGO_URL"]);
+            }
 
             // DB Configuration
             var pack = new ConventionPack()
