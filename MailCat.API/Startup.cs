@@ -45,6 +45,13 @@ namespace MailCat.API
 
             services.AddSwaggerGen();
             services.AddSwaggerGenNewtonsoftSupport(); // Must be placed after .AddSwaggerGen();
+
+            services.AddCors(o => o.AddDefaultPolicy(builder =>
+            {
+                builder.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            }));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -64,6 +71,8 @@ namespace MailCat.API
             });
 
             app.UseRouting();
+
+            app.UseCors();
 
             app.UseAuthorization();
 
